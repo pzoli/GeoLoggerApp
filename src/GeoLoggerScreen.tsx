@@ -1,3 +1,5 @@
+import { firebase } from '@react-native-firebase/database';
+import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
@@ -27,24 +29,41 @@ function checkPermission() {
 export default function GeoLoggerScreen() {
     let [latitude, setLatitude] = useState(0);
     let [longitude, setLongitude] = useState(0);
+
+    const startLocationWatch = () => {
+        Geolocation.watchPosition(
+            (position) => {
+                setLatitude(position.coords.latitude);
+                setLongitude(position.coords.longitude);
+                console.log(`Latitude: ${position.coords.latitude}, Longitude: ${position.coords.longitude}`);
+            },
+            (error) => {
+                console.log(error.code, error.message);
+            },
+            {
+                enableHighAccuracy: false,
+                interval: 1000,
+                distanceFilter: 0.1
+            }
+        );
+
+    }
+
     useEffect(() => {
         checkPermission().then(() => {
-            Geolocation.watchPosition(
-                (position) => {
-                    setLatitude(position.coords.latitude);
-                    setLongitude(position.coords.longitude);
-                    console.log(`Latitude: ${position.coords.latitude}, Longitude: ${position.coords.longitude}`);
-                },
-                (error) => {
-                    console.log(error.code, error.message);
-                },
-                {
-                    enableHighAccuracy: false,
-                    interval: 1000,
-                    distanceFilter: 0.1
-                }
-            );
-
+            auth()
+                .createUserWithEmailAndPassword('papp.zoltan.bableshop@gmail.com', 'test1234')
+                .then(() => {
+                    auth().signInWithEmailAndPassword('papp.zoltan.bableshop@gmail.com', 'test1234')
+                        .then(() => {
+                            startLocationWatch();
+                        })
+                }).catch(() => {
+                    auth().signInWithEmailAndPassword('papp.zoltan.bableshop@gmail.com', 'test1234')
+                        .then(() => {
+                            startLocationWatch();
+                        })
+                });
         });
     })
     return (
