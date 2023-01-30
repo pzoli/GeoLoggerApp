@@ -4,6 +4,10 @@ import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
 import { request, PERMISSIONS, check, RESULTS } from 'react-native-permissions';
+import UserInfo from './UserInfo';
+
+const database = firebase.app()
+    .database('https://geologger-b9659-default-rtdb.europe-west1.firebasedatabase.app');
 
 function checkPermission() {
     return new Promise((resolve) => {
@@ -29,13 +33,38 @@ function checkPermission() {
 export default function GeoLoggerScreen() {
     let [latitude, setLatitude] = useState(0);
     let [longitude, setLongitude] = useState(0);
+    let key: string = '';
 
-    const startLocationWatch = () => {
+    const reqireKey = async () => {
+        let foundKey: string | null = await getLoggedInUsernameKey();
+        if (foundKey === undefined || foundKey === null || foundKey === '') {
+            registerUser(new UserInfo(loginName, 'Papp Zoltán'));
+        } else {
+            key = foundKey;
+        }
+    }
+
+    const registerUser = async (userInfo: UserInfo) => {
+        const userRegiterReference = database.ref('/userRegister/').push();
+        await userRegiterReference.set({
+            id: userRegiterReference.key,
+            username: userInfo.username,
+            email: userInfo.email,
+        });
+        key = userRegiterReference.key ? userRegiterReference.key : '';
+    }
+
+    const startLocationWatch = async () => {
         Geolocation.watchPosition(
             (position) => {
                 setLatitude(position.coords.latitude);
                 setLongitude(position.coords.longitude);
                 console.log(`Latitude: ${position.coords.latitude}, Longitude: ${position.coords.longitude}`);
+                if (key !== null) {
+                    recordLocatoinOnFirebaseDB(key, position.coords.latitude, position.coords.longitude);
+                } else {
+                    console.log('Key is null!');
+                }
             },
             (error) => {
                 console.log(error.code, error.message);
@@ -49,28 +78,67 @@ export default function GeoLoggerScreen() {
 
     }
 
+    const loginName: string = 'papp.zoltan.bableshop@gmail.com';
+    const loginPassword: string = 'test1234';
+
     useEffect(() => {
         checkPermission().then(() => {
             auth()
-                .createUserWithEmailAndPassword('papp.zoltan.bableshop@gmail.com', 'test1234')
+                .createUserWithEmailAndPassword(loginName, loginPassword)
                 .then(() => {
-                    auth().signInWithEmailAndPassword('papp.zoltan.bableshop@gmail.com', 'test1234')
-                        .then(() => {
-                            startLocationWatch();
-                        })
-                }).catch(() => {
-                    auth().signInWithEmailAndPassword('papp.zoltan.bableshop@gmail.com', 'test1234')
-                        .then(() => {
-                            startLocationWatch();
-                        })
-                });
+                    console.log("Registering done ");
+                    sigiIn(loginName, loginPassword);
+                }).catch((err) => {
+                    console.log("Error at registering: " + err);
+                    sigiIn(loginName, loginPassword);
+                }).catch((err) => {
+                    console.log("Error at login: " + err);
+                })
         });
-    })
+    }, []);
+
+    function sigiIn(loginName: string, loginPassword: string) {
+        auth().signInWithEmailAndPassword(loginName, loginPassword)
+            .then(() => {
+                reqireKey().then(() =>
+                    startLocationWatch()
+                );
+            }).catch((err) => {
+                console.log("Error at login: " + err);
+            })
+    }
+
     return (
         <View style={{ width: '100%', height: '100%', alignContent: 'center', justifyContent: 'center' }}>
             <Text style={{ textAlign: 'center' }}>Longitude: {longitude}</Text>
             <Text style={{ textAlign: 'center' }}>Latitude: {latitude}</Text>
         </View>
     );
+}
+
+async function recordLocatoinOnFirebaseDB(keyValue: string, latitude: number, longitude: number) {
+    console.log(`Record key=[${keyValue}]`);
+    const reference = database.ref('/geolocations/users/' + keyValue);
+    reference.update({
+        latitude: latitude,
+        longitude: longitude
+    }).then(() => { console.log("Location recorded.") });
+}
+
+async function getLoggedInUsernameKey(): Promise<string> {
+    let result: string = "";
+    let ref = database.ref('/userRegister');
+    await ref.once('value')
+        .then(async snapshot => {
+            const val = await snapshot.val()
+            for (const key in val) {
+                let userInfo = val[key];
+                if (userInfo.email == auth().currentUser?.email) {
+                    result = key;
+                }
+            }
+        });
+
+    return await result;
 }
 
