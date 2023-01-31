@@ -78,7 +78,7 @@ export default function GeoLoggerScreen() {
 
     }
 
-    const loginName: string = 'papp.zoltan.bableshop@gmail.com';
+    const loginName: string = 'orangepi.infokristaly@gmail.com';
     const loginPassword: string = 'test1234';
 
     useEffect(() => {
