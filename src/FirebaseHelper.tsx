@@ -46,14 +46,14 @@ export default class FirebaseHelper {
     }
 
     public async registerUser(userInfo: UserInfo) {
-        const userRegiterReference = this.database.ref('/userRegister/').push();
-        await userRegiterReference.set({
+        const userRegisterReference = this.database.ref('/userRegister/').push();
+        await userRegisterReference.set({
             //userkey: userRegiterReference.key,
             uid: auth().currentUser?.uid,
             username: userInfo.username,
             email: userInfo.email,
         });
-        this.key = userRegiterReference.key ? userRegiterReference.key : '';
+        this.key = userRegisterReference.key ? userRegisterReference.key : '';
     }
 
     public async getLoggedInUsernameKey(): Promise<string> {
