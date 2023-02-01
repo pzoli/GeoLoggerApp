@@ -37,7 +37,7 @@ export default class FirebaseHelper {
     }
 
     public async reqireKey() {
-        let foundKey: string | null = await this.getLoggedInUsernameKey();
+        let foundKey: string | null = await this.getLoggedInUserKey();
         if (foundKey === undefined || foundKey === null || foundKey === '') {
             this.registerUser(new UserInfo(this.loginEmail, this.loginName));
         } else {
@@ -56,7 +56,7 @@ export default class FirebaseHelper {
         this.key = userRegisterReference.key ? userRegisterReference.key : '';
     }
 
-    public async getLoggedInUsernameKey(): Promise<string> {
+    public async getLoggedInUserKey(): Promise<string> {
         let result: string = "";
         let ref = this.database.ref('/userRegister');
         await ref.once('value')
@@ -70,7 +70,7 @@ export default class FirebaseHelper {
                 }
             });
 
-        return await result;
+        return result;
     }
 
 }
